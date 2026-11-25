@@ -11,9 +11,14 @@
 #include "slapstic.h"
 #include "eeprom.h"
 
+// 동적분석기용
+class MemoryTrace;
+class MemoryInstructionTrace;
+
 class AtariTetrisVideo;
 class Watchdog;
 class Pokey;
+
 
 class AtariTetrisMemory
 {
@@ -91,6 +96,24 @@ public:
 
     void connectPokeys(Pokey* pokey1, Pokey* pokey2);
 
+    //동적분석기용
+    void connectMemoryTrace(
+    MemoryTrace* trace);
+
+    void setTraceContext(
+        uint64_t frame,
+        uint64_t cycles);
+
+    void connectMemoryInstructionTrace(
+        MemoryInstructionTrace* trace
+    );
+
+    void setInstructionContext(
+        uint16_t pc,
+        uint8_t opcode,
+        bool valid
+    );
+
 private:
     std::array<uint8_t, RAM_SIZE> m_ram;
 
@@ -116,4 +139,13 @@ private:
     void notifySlapstic(uint16_t address);
 
     std::function<void()> m_irqAcknowledgeCallback;
+
+    //동적분석기용
+    MemoryTrace* m_memoryTrace = nullptr;
+    uint64_t m_traceFrame = 0;
+    uint64_t m_traceCycles = 0;
+    MemoryInstructionTrace* m_instructionTrace = nullptr;
+    uint16_t m_instructionPC = 0;
+    uint8_t m_instructionOpcode = 0;
+    bool m_instructionContextValid = false;
 };
