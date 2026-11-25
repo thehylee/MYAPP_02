@@ -121,6 +121,15 @@ void M6502::setNZ(uint8_t value)
 
 void M6502::interrupt(uint16_t vector)
 {
+    if (m_memory)
+    {
+        m_memory->setInstructionContext(
+            0,
+            0,
+            false
+        );
+    }
+
     push(static_cast<uint8_t>(m_PC >> 8));
     push(static_cast<uint8_t>(m_PC));
 
@@ -396,8 +405,21 @@ int M6502::execute(int cycles)
 
 void M6502::executeInstruction()
 {
+    // Capture instruction start PC
+    const uint16_t instructionPC = m_PC;
+
     // Fetch opcode
     const uint8_t opcode = fetch();
+
+    // Set instruction context
+    if (m_memory)
+    {
+        m_memory->setInstructionContext(
+            instructionPC,
+            opcode,
+            true
+        );
+    }
 
     switch (opcode)
     {
@@ -2111,7 +2133,6 @@ void M6502::executeInstruction()
             "(COUNT=%llu)\n",
 
             opcode,
-
             static_cast<uint16_t>(
                 m_PC - 1
             )
@@ -2122,4 +2143,15 @@ void M6502::executeInstruction()
 
         break;
     }
+
+    // Clear instruction context
+    if (m_memory)
+    {
+        m_memory->setInstructionContext(
+            0,
+            0,
+            false
+        );
+    }
+
 }
