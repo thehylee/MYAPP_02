@@ -1,3 +1,6 @@
+//동적분석기용
+#include "teardown/memory_trace.h"
+#include "teardown/memory_instruct_trace.h"
 
 #include "tetris_memory.h"
 #include "tetris_video.h"
@@ -5,6 +8,8 @@
 #include "pokey.h"
 
 #include <cstring>
+#include <iostream>
+
 
 AtariTetrisMemory::AtariTetrisMemory(
     Palette& palette,
@@ -132,13 +137,41 @@ uint8_t AtariTetrisMemory::read(
 
     // Main RAM
     if (address <= 0x0FFF)
-        return m_ram[address];
+    {
+        uint8_t value = m_ram[address];
+
+        if (m_memoryTrace)
+        {
+            m_memoryTrace->recordRead(
+                address,
+                value,
+                m_traceFrame,
+                m_traceCycles
+            );
+        }
+
+        return value;
+    }
 
     // Video RAM
     if (address >= 0x1000 &&
         address <= 0x1FFF)
     {
-        return m_videoRAM[address - 0x1000];
+        uint16_t offset = address - 0x1000;
+
+        uint8_t value = m_videoRAM[offset];
+
+        if (m_memoryTrace)
+        {
+            m_memoryTrace->recordRead(
+                address,
+                value,
+                m_traceFrame,
+                m_traceCycles
+            );
+        }
+
+        return value;
     }
 
     // Palette RAM
@@ -218,11 +251,41 @@ void AtariTetrisMemory::write(
 )
 {
     notifySlapstic(address);
-    
+            
     // Main RAM
     if (address <= 0x0FFF)
     {
+        uint8_t oldValue = m_ram[address];
+
         m_ram[address] = data;
+
+        // Existing Memory Trace
+        if (m_memoryTrace)
+        {
+            m_memoryTrace->recordWrite(
+                address,
+                oldValue,
+                data,
+                m_traceFrame,
+                m_traceCycles
+            );
+        }
+
+        // New Memory Instruction Trace
+        if (m_instructionTrace &&
+            m_instructionContextValid)
+        {
+            m_instructionTrace->recordWrite(
+                m_traceFrame,
+                m_traceCycles,
+                m_instructionPC,
+                m_instructionOpcode,
+                address,
+                oldValue,
+                data
+            );
+        }
+
         return;
     }
 
@@ -232,7 +295,20 @@ void AtariTetrisMemory::write(
     {
         int offset = address - 0x1000;
 
+        uint8_t oldValue = m_videoRAM[offset];
+
         m_videoRAM[offset] = data;
+
+        if (m_memoryTrace)
+        {
+            m_memoryTrace->recordWrite(
+                address,
+                oldValue,
+                data,
+                m_traceFrame,
+                m_traceCycles
+            );
+        }
 
         if (m_video)
             m_video->markTileDirty(offset);
@@ -392,4 +468,36 @@ void AtariTetrisMemory::connectPokeys(
 {
     m_pokey1 = pokey1;
     m_pokey2 = pokey2;
+}
+
+void AtariTetrisMemory::connectMemoryTrace(
+    MemoryTrace* trace)
+{
+    m_memoryTrace = trace;
+}
+
+void AtariTetrisMemory::setTraceContext(
+    uint64_t frame,
+    uint64_t cycles)
+{
+    m_traceFrame = frame;
+    m_traceCycles = cycles;
+}
+
+void AtariTetrisMemory::connectMemoryInstructionTrace(
+    MemoryInstructionTrace* trace
+)
+{
+    m_instructionTrace = trace;
+}
+
+void AtariTetrisMemory::setInstructionContext(
+    uint16_t pc,
+    uint8_t opcode,
+    bool valid
+)
+{
+    m_instructionPC = pc;
+    m_instructionOpcode = opcode;
+    m_instructionContextValid = valid;
 }
