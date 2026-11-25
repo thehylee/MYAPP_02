@@ -1,6 +1,9 @@
 
 #include "machine_scheduler.h"
 
+//동적분석기용
+#include "tetris_memory.h"
+
 #include "m6502.h"
 #include "watchdog.h"
 #include "tetris_input.h"
@@ -14,6 +17,8 @@ MachineScheduler::MachineScheduler(M6502& cpu)
       m_pokey1(nullptr),
       m_pokey2(nullptr),
       m_audioMixer(nullptr),
+      m_memory(nullptr),
+      m_frameNumber(0),
       m_totalCpuCycles(0),
       m_totalRequestedCycles(0),
       m_cycleCarry(0),
@@ -43,6 +48,15 @@ int MachineScheduler::runCycles(int requestedCycles)
         m_cycleCarry -= requestedCycles;
         m_totalRequestedCycles += requestedCycles;
         return 0;
+    }
+
+    //동적분석기용
+    if (m_memory)
+    {
+        m_memory->setTraceContext(
+            m_frameNumber,
+            m_totalCpuCycles
+        );
     }
 
     int executedCycles =
@@ -133,6 +147,8 @@ int MachineScheduler::runFrame()
 
         totalExecuted += cycles;
     }
+
+    ++m_frameNumber;
 
     return totalExecuted;
 }
@@ -308,6 +324,12 @@ void MachineScheduler::connectAudioMixer(
     AudioMixer* mixer)
 {
     m_audioMixer = mixer;
+}
+
+void MachineScheduler::connectMemory(
+    AtariTetrisMemory* memory)
+{
+    m_memory = memory;
 }
 
 // =====================================
