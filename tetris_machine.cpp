@@ -71,6 +71,9 @@ void AtariTetrisMachine::connectHardware()
     // CPU <-> Memory
     m_cpu.connectMemory(&m_memory);
 
+    //동적분석기용
+    m_scheduler.connectMemory(&m_memory);
+
     // Memory <-> POKEY
     m_memory.connectPokeys(
         &m_pokey1,
