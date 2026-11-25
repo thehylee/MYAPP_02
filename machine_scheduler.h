@@ -3,6 +3,9 @@
 
 #include <cstdint>
 
+//동적분석기용
+class AtariTetrisMemory;
+
 class M6502;
 class Watchdog;
 class TetrisInput;
@@ -44,6 +47,9 @@ public:
     void connectPokeys(Pokey* pokey1, Pokey* pokey2);
     void connectAudioMixer(AudioMixer* mixer);
 
+    //동적분석기용
+    void connectMemory(AtariTetrisMemory* memory);
+
     void reset();
 
 private:
@@ -54,6 +60,10 @@ private:
     Pokey* m_pokey1;
     Pokey* m_pokey2;
     AudioMixer* m_audioMixer;
+
+    //동적분석기용
+    AtariTetrisMemory* m_memory = nullptr;
+    uint64_t m_frameNumber = 0;
 
     uint64_t m_totalCpuCycles;
     uint64_t m_totalRequestedCycles;
